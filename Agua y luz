@@ -67,11 +67,11 @@ if ("serviceWorker" in navigator) {
 }
 </script>
 
-</body>function calcular() {
+</body>
+</html>
+function calcular() {
 
   let tKwh = +totalKwh.value;
-  let totalLuz€ = +totalLuz.value;
-
   let c1 = +c1L.value;
   let c2 = +c2L.value;
   let c3 = +c3L.value;
@@ -82,21 +82,19 @@ if ("serviceWorker" in navigator) {
   let alertaTexto = "";
 
   if (Math.abs(perdida) > 1) {
-    alertaTexto = "⚠️ Los contadores de LUZ no cuadran. Diferencia: " + perdida.toFixed(2) + " kWh";
+    alertaTexto = "⚠️ Los contadores NO cuadran. Diferencia: " + perdida.toFixed(2) + " kWh";
   }
 
-  let factor = suma > 0 ? (tKwh / suma) : 0;
+  let factor = tKwh / suma;
 
   let c1Real = c1 * factor;
   let c2Real = c2 * factor;
   let c3Real = c3 * factor;
 
-  let precioKwh = tKwh > 0 ? (totalLuz€ / tKwh) : 0;
+  let precioKwh = totalLuz.value / tKwh;
 
   // AGUA
   let tM3 = +totalM3.value;
-  let totalAgua€ = +totalAgua.value;
-
   let a1 = +c1A.value;
   let a2 = +c2A.value;
   let a3 = +c3A.value;
@@ -104,35 +102,32 @@ if ("serviceWorker" in navigator) {
   let sumaA = a1 + a2 + a3;
   let perdidaA = tM3 - sumaA;
 
-  if (Math.abs(perdidaA) > 0.5) {
-    alertaTexto += "\n⚠️ Los contadores de AGUA no cuadran. Diferencia: " + perdidaA.toFixed(2) + " m³";
-  }
-
-  let factorA = sumaA > 0 ? (tM3 / sumaA) : 0;
+  let factorA = tM3 / sumaA;
 
   let a1R = a1 * factorA;
   let a2R = a2 * factorA;
   let a3R = a3 * factorA;
 
-  let precioM3 = tM3 > 0 ? (totalAgua€ / tM3) : 0;
+  let precioM3 = totalAgua.value / tM3;
 
   let texto = `
 📅 ${mes.value}
 
-⚡ LUZ
+⚡ Luz:
 Precio kWh: ${precioKwh.toFixed(4)}
-Casa 1: ${(c1Real * precioKwh).toFixed(2)} €
-Casa 2: ${(c2Real * precioKwh).toFixed(2)} €
-Casa 3: ${(c3Real * precioKwh).toFixed(2)} €
+Casa1: ${(c1Real * precioKwh).toFixed(2)} €
+Casa2: ${(c2Real * precioKwh).toFixed(2)} €
+Casa3: ${(c3Real * precioKwh).toFixed(2)} €
 Pérdida: ${perdida.toFixed(2)} kWh
 
-💧 AGUA
+💧 Agua:
 Precio m³: ${precioM3.toFixed(4)}
-Casa 1: ${(a1R * precioM3).toFixed(2)} €
-Casa 2: ${(a2R * precioM3).toFixed(2)} €
-Casa 3: ${(a3R * precioM3).toFixed(2)} €
+Casa1: ${(a1R * precioM3).toFixed(2)} €
+Casa2: ${(a2R * precioM3).toFixed(2)} €
+Casa3: ${(a3R * precioM3).toFixed(2)} €
 Pérdida: ${perdidaA.toFixed(2)} m³
 `;
+
 
   resultado.innerText = texto;
   alerta.innerText = alertaTexto;
@@ -141,12 +136,11 @@ Pérdida: ${perdidaA.toFixed(2)} m³
 }
 
 function guardarMes() {
-  if (!mes.value) return alert("Selecciona un mes");
-
   calcular();
 
   localStorage.setItem("mes_" + mes.value, JSON.stringify({
-    resultado: resultado.innerText
+    resultado: resultado.innerText,
+    mes: mes.value
   }));
 
   cargarHistorial();
@@ -168,7 +162,7 @@ function cargarHistorial() {
 
 function cargarMes() {
   let d = JSON.parse(localStorage.getItem(historial.value));
-  if (d) resultado.innerText = d.resultado;
+  resultado.innerText = d.resultado;
 }
 
 function exportarPDF() {
@@ -182,6 +176,7 @@ function exportarPDF() {
 let chart;
 
 function guardarGrafica() {
+
   let datos = JSON.parse(localStorage.getItem("grafica")) || [];
 
   datos.push({
@@ -190,10 +185,12 @@ function guardarGrafica() {
   });
 
   localStorage.setItem("grafica", JSON.stringify(datos));
+
   dibujarGrafica();
 }
 
 function dibujarGrafica() {
+
   let datos = JSON.parse(localStorage.getItem("grafica")) || [];
 
   let labels = datos.map(d => d.mes);
@@ -217,9 +214,8 @@ window.onload = () => {
   cargarHistorial();
   dibujarGrafica();
 };
-</html>
 {
-  "name": "Contadores Pro 💧🔌",
+  "name": "Contadores Pro",
   "short_name": "Contadores",
   "start_url": "index.html",
   "display": "standalone",
@@ -245,4 +241,4 @@ self.addEventListener("fetch", e => {
   e.respondWith(
     caches.match(e.request).then(r => r || fetch(e.request))
   );
-});icon-192.png
+});
