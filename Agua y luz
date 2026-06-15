@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Contadores Pro</title>
+
+<link rel="manifest" href="manifest.json">
+
+<style>
+body { font-family: Arial; padding: 10px; background: #f2f2f2; }
+.box { background: white; padding: 12px; margin-bottom: 10px; border-radius: 10px; }
+input, select { width: 100%; padding: 8px; margin: 4px 0; }
+button { padding: 10px; width: 100%; margin-top: 5px; border: none; border-radius: 5px; }
+.calcular { background: #28a745; color: white; }
+.pdf { background: #007bff; color: white; }
+.guardar { background: #ff9800; color: white; }
+.alerta { color: red; font-weight: bold; }
+</style>
+</head>
+
+<body>
+
+<h1>💧🔌 Contadores Pro</h1>
+
+<div class="box">
+<h2>📅 Mes</h2>
+<input type="month" id="mes">
+<button class="guardar" onclick="guardarMes()">Guardar mes</button>
+<select id="historial" onchange="cargarMes()"></select>
+</div>
+
+<div class="box">
+<h2>⚡ Luz</h2>
+<input id="totalLuz" placeholder="Total factura €">
+<input id="totalKwh" placeholder="Total kWh contador general">
+<input id="c1L" placeholder="Casa 1 kWh">
+<input id="c2L" placeholder="Casa 2 kWh">
+<input id="c3L" placeholder="Casa 3 kWh">
+</div>
+
+<div class="box">
+<h2>💧 Agua</h2>
+<input id="totalAgua" placeholder="Total factura €">
+<input id="totalM3" placeholder="Total m³ contador general">
+<input id="c1A" placeholder="Casa 1 m³">
+<input id="c2A" placeholder="Casa 2 m³">
+<input id="c3A" placeholder="Casa 3 m³">
+</div>
+
+<button class="calcular" onclick="calcular()">Calcular</button>
+<button class="pdf" onclick="exportarPDF()">Exportar PDF</button>
+
+<div class="box" id="resultado"></div>
+<div class="box alerta" id="alerta"></div>
+
+<canvas id="grafica" height="100"></canvas>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script src="app.js"></script>
+
+<script>
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("service-worker.js");
+}
+</script>
+
+</body>function calcular() {
+
+  let tKwh = +totalKwh.value;
+  let totalLuz€ = +totalLuz.value;
+
+  let c1 = +c1L.value;
+  let c2 = +c2L.value;
+  let c3 = +c3L.value;
+
+  let suma = c1 + c2 + c3;
+  let perdida = tKwh - suma;
+
+  let alertaTexto = "";
+
+  if (Math.abs(perdida) > 1) {
+    alertaTexto = "⚠️ Los contadores de LUZ no cuadran. Diferencia: " + perdida.toFixed(2) + " kWh";
+  }
+
+  let factor = suma > 0 ? (tKwh / suma) : 0;
+
+  let c1Real = c1 * factor;
+  let c2Real = c2 * factor;
+  let c3Real = c3 * factor;
+
+  let precioKwh = tKwh > 0 ? (totalLuz€ / tKwh) : 0;
+
+  // AGUA
+  let tM3 = +totalM3.value;
+  let totalAgua€ = +totalAgua.value;
+
+  let a1 = +c1A.value;
+  let a2 = +c2A.value;
+  let a3 = +c3A.value;
+
+  let sumaA = a1 + a2 + a3;
+  let perdidaA = tM3 - sumaA;
+
+  if (Math.abs(perdidaA) > 0.5) {
+    alertaTexto += "\n⚠️ Los contadores de AGUA no cuadran. Diferencia: " + perdidaA.toFixed(2) + " m³";
+  }
+
+  let factorA = sumaA > 0 ? (tM3 / sumaA) : 0;
+
+  let a1R = a1 * factorA;
+  let a2R = a2 * factorA;
+  let a3R = a3 * factorA;
+
+  let precioM3 = tM3 > 0 ? (totalAgua€ / tM3) : 0;
+
+  let texto = `
+📅 ${mes.value}
+
+⚡ LUZ
+Precio kWh: ${precioKwh.toFixed(4)}
+Casa 1: ${(c1Real * precioKwh).toFixed(2)} €
+Casa 2: ${(c2Real * precioKwh).toFixed(2)} €
+Casa 3: ${(c3Real * precioKwh).toFixed(2)} €
+Pérdida: ${perdida.toFixed(2)} kWh
+
+💧 AGUA
+Precio m³: ${precioM3.toFixed(4)}
+Casa 1: ${(a1R * precioM3).toFixed(2)} €
+Casa 2: ${(a2R * precioM3).toFixed(2)} €
+Casa 3: ${(a3R * precioM3).toFixed(2)} €
+Pérdida: ${perdidaA.toFixed(2)} m³
+`;
+
+  resultado.innerText = texto;
+  alerta.innerText = alertaTexto;
+
+  guardarGrafica();
+}
+
+function guardarMes() {
+  if (!mes.value) return alert("Selecciona un mes");
+
+  calcular();
+
+  localStorage.setItem("mes_" + mes.value, JSON.stringify({
+    resultado: resultado.innerText
+  }));
+
+  cargarHistorial();
+}
+
+function cargarHistorial() {
+  historial.innerHTML = "";
+
+  for (let i = 0; i < localStorage.length; i++) {
+    let k = localStorage.key(i);
+    if (k.startsWith("mes_")) {
+      let op = document.createElement("option");
+      op.value = k;
+      op.text = k.replace("mes_", "");
+      historial.appendChild(op);
+    }
+  }
+}
+
+function cargarMes() {
+  let d = JSON.parse(localStorage.getItem(historial.value));
+  if (d) resultado.innerText = d.resultado;
+}
+
+function exportarPDF() {
+  const { jsPDF } = window.jspdf;
+  let doc = new jsPDF();
+  doc.text(resultado.innerText, 10, 10);
+  doc.save("factura_" + mes.value + ".pdf");
+}
+
+// GRÁFICA
+let chart;
+
+function guardarGrafica() {
+  let datos = JSON.parse(localStorage.getItem("grafica")) || [];
+
+  datos.push({
+    mes: mes.value,
+    consumo: +totalKwh.value
+  });
+
+  localStorage.setItem("grafica", JSON.stringify(datos));
+  dibujarGrafica();
+}
+
+function dibujarGrafica() {
+  let datos = JSON.parse(localStorage.getItem("grafica")) || [];
+
+  let labels = datos.map(d => d.mes);
+  let valores = datos.map(d => d.consumo);
+
+  if (chart) chart.destroy();
+
+  chart = new Chart(grafica, {
+    type: "line",
+    data: {
+      labels: labels,
+      datasets: [{
+        label: "Consumo kWh",
+        data: valores
+      }]
+    }
+  });
+}
+
+window.onload = () => {
+  cargarHistorial();
+  dibujarGrafica();
+};
+</html>
+{
+  "name": "Contadores Pro 💧🔌",
+  "short_name": "Contadores",
+  "start_url": "index.html",
+  "display": "standalone",
+  "theme_color": "#28a745",
+  "background_color": "#ffffff",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    }
+  ]
+}
+self.addEventListener("install", e => {
+  e.waitUntil(
+    caches.open("app").then(cache =>
+      cache.addAll(["index.html", "app.js"])
+    )
+  );
+});
+
+self.addEventListener("fetch", e => {
+  e.respondWith(
+    caches.match(e.request).then(r => r || fetch(e.request))
+  );
+});icon-192.png
