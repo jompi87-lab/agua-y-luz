@@ -1,0 +1,125 @@
+function calcular() {
+  const totalLuz = parseFloat(totalLuz.value) || 0;
+  const totalAgua = parseFloat(totalAgua.value) || 0;
+
+  const generalLuz = parseFloat(generalLuz.value) || 0;
+  const generalAgua = parseFloat(generalAgua.value) || 0;
+
+  const casas = [
+    {nombre:"Casa 1", luz:parseFloat(luz1.value)||0, agua:parseFloat(agua1.value)||0},
+    {nombre:"Casa 2", luz:parseFloat(luz2.value)||0, agua:parseFloat(agua2.value)||0},
+    {nombre:"Casa 3", luz:parseFloat(luz3.value)||0, agua:parseFloat(agua3.value)||0}
+  ];
+
+  const precioLuz = totalLuz / generalLuz;
+  const precioAgua = totalAgua / generalAgua;
+
+  const sumaLuz = casas.reduce((a,c)=>a+c.luz,0);
+  const sumaAgua = casas.reduce((a,c)=>a+c.agua,0);
+
+  const perdidaLuz = generalLuz - sumaLuz;
+  const perdidaAgua = generalAgua - sumaAgua;
+
+  let html = "";
+
+  casas.forEach(c=>{
+    const pL = c.luz / sumaLuz;
+    const pA = c.agua / sumaAgua;
+
+    const luzFinal = c.luz + perdidaLuz * pL;
+    const aguaFinal = c.agua + perdidaAgua * pA;
+
+    const pagoLuz = luzFinal * precioLuz;
+    const pagoAgua = aguaFinal * precioAgua;
+
+    html += `<div class="resultado">
+      <b>${c.nombre}</b><br>
+      💡 ${pagoLuz.toFixed(2)} €<br>
+      💧 ${pagoAgua.toFixed(2)} €
+    </div>`;
+  });
+
+  document.getElementById("resultados").innerHTML = html;
+}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>💧🔌 Contadores</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="manifest" href="manifest.json">
+</head>
+
+<body>
+  <h1>💧🔌 Contadores</h1>
+
+  <h2>Totales factura</h2>
+  <input id="totalLuz" placeholder="€ luz">
+  <input id="totalAgua" placeholder="€ agua">
+
+  <h2>Contador general</h2>
+  <input id="generalLuz" placeholder="kWh total">
+  <input id="generalAgua" placeholder="m³ total">
+
+  <h2>Casas</h2>
+
+  <div>
+    <h3>Casa 1</h3>
+    <input id="luz1" placeholder="kWh">
+    <input id="agua1" placeholder="m³">
+  </div>
+
+  <div>
+    <h3>Casa 2</h3>
+    <input id="luz2" placeholder="kWh">
+    <input id="agua2" placeholder="m³">
+  </div>
+
+  <div>
+    <h3>Casa 3</h3>
+    <input id="luz3" placeholder="kWh">
+    <input id="agua3" placeholder="m³">
+  </div>
+
+  <button onclick="calcular()">Calcular</button>
+
+  <div id="resultados"></div>
+
+  <script src="app.js"></script>
+</body>
+</html>
+body {
+  font-family: Arial;
+  padding: 15px;
+  background: #0f172a;
+  color: white;
+}
+
+input {
+  display: block;
+  margin: 5px 0;
+  padding: 8px;
+  width: 100%;
+}
+
+button {
+  padding: 10px;
+  background: #22c55e;
+  border: none;
+  color: white;
+  margin-top: 10px;
+}
+
+.resultado {
+  margin-top: 10px;
+  padding: 10px;
+  background: #1e293b;
+}
+
+.alerta {
+  color: red;
+}
+
+.ok {
+  color: #22c55e;
+}
